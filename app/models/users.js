@@ -70,7 +70,7 @@ module.exports = {
             .then((content) => {
                 let users = [];
                 try {
-                    users = JSON.stringify(content.toString());
+                    users = JSON.parse(content.toString());
                 } catch (e) {
 
                 }

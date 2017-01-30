@@ -1,7 +1,6 @@
 "use strict";
 
-const Router = require("koa-router");
-const router = new Router();
+const router = require("koa-router")();
 
 
 router.get('/users', async (ctx, next) => {
@@ -9,6 +8,6 @@ router.get('/users', async (ctx, next) => {
 });
 
 module.exports = {
-    router: router,
+    routes: router.routes,
     allowedMethods: router.allowedMethods
 };
