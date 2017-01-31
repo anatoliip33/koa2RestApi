@@ -1,84 +1,50 @@
 "use strict";
 
-const fs = require("fs"),
-    Q = require("q"),
-    databaseFileName = `${__dirname}/../databases/users.json`;
+const Memcached = require('memcached'),
+    Q = require("q");
+let memcached = new Memcached("localhost:11211");
 
 module.exports = {
-    getAll: () => {
+    getById: (id) => {
         return new Promise((resolve, reject) => {
-            fs.readFile(databaseFileName, (err, content) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    let users = [];
-                    try {
-                        users = JSON.parse(content.toString())
-                    } catch (e) {
-                        /* @todo описать какое-то действие */
+            memcached.get(id, function (err, content) {
+                if (err) reject(err);
+                try {
+                    if (content) {
+                        resolve(content.count.toString());
                     }
-                    resolve(users);
+                    else {
+                        resolve("User with id:" + id + ", don't exist");
+                    }
+                }
+                catch (e) {
+                    reject(e);
                 }
             });
         });
     },
-    getById: (id) => {
-        return Q.nfcall(fs.readFile, databaseFileName)
-            .then((content) => {
-                return content.toString(); //Buffer --> String
-            })
-            .then(JSON.parse) // String --> Object
-            .get(Number(id)); // Object[index] --> Object
-    },
-    add: (params) => {
-        return Q.nfcall(fs.readFile, databaseFileName)
-            .then((content) => {
-                let users = [];
-                try {
-                    users = JSON.parse(content.toString());
-                } catch (e) {
-
-                }
-                users.push(params);
-                return users;
-            })
-            .then((users) => {
-                return Q.nfcall(fs.writeFile, databaseFileName, JSON.stringify(users, null, 2))
-                    .then(() => {
-                        return users.length - 1;
-                    });
+    add: (params, id) => {
+        return new Promise((resolve, reject) => {
+            memcached.set(id, params, 0, function(err){
+                if (err) reject(err);
+                resolve (Number(id));
             });
-    },
-    update: (id, params) => {
-        return Q.nfcall(fs.readFile, databaseFileName)
-            .then((content) => {
-                let users = [];
-                try {
-                    users = JSON.parse(content.toString());
-                } catch (e) {
-
-                }
-                users[Number(id)] = params;
-                return users;
-            })
-            .then((users) => {
-                return Q.nfcall(fs.writeFile, databaseFileName, JSON.stringify(users, null, 2));
-            });
+        });
     },
     remove: (id) => {
-        return Q.nfcall(fs.readFile, databaseFileName)
-            .then((content) => {
-                let users = [];
-                try {
-                    users = JSON.parse(content.toString());
-                } catch (e) {
-
+        return new Promise((resolve, reject) => {
+            memcached.del(id, function (err, content) {
+                if (err) {
+                    reject(err);
                 }
-                delete users[Number(id)];
-                return users;
-            })
-            .then((users) => {
-                return Q.nfcall(fs.writeFile, databaseFileName, JSON.stringify(users, null, 2));
+                if (content) {
+                    resolve(`User id:${id} deleted`);
+                }
+                else {
+                    resolve(`User with id:${id} don't exist`);
+                }
             });
+        })
+
     }
 };
